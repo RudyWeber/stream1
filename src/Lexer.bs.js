@@ -8,63 +8,104 @@ var Caml_exceptions = require("bs-platform/lib/js/caml_exceptions.js");
 var UnexpectedToken = Caml_exceptions.create("Lexer.UnexpectedToken");
 
 function lex(input) {
-  return List.rev(List.fold_left((function (tokens, c) {
-                    switch (c) {
-                      case 32 :
-                          return tokens;
-                      case 40 :
-                          return List.cons(/* OpenPar */2, tokens);
-                      case 41 :
-                          return List.cons(/* ClosePar */3, tokens);
-                      case 43 :
-                          return List.cons(/* Plus */1, tokens);
-                      case 33 :
-                      case 34 :
-                      case 35 :
-                      case 36 :
-                      case 37 :
-                      case 38 :
-                      case 39 :
-                      case 42 :
-                      case 44 :
-                          break;
-                      case 45 :
-                          return List.cons(/* Dash */0, tokens);
-                      default:
-                        
-                    }
-                    if (c >= /* "0" */48 && c <= /* "9" */57) {
-                      var n = c - 48 | 0;
-                      if (!tokens) {
-                        return List.cons(/* Num */{
-                                    _0: n
-                                  }, tokens);
-                      }
-                      var n$prime = tokens.hd;
-                      if (typeof n$prime === "number") {
-                        if (n$prime !== 0) {
-                          return List.cons(/* Num */{
-                                      _0: n
-                                    }, tokens);
-                        } else {
-                          return List.cons(/* Num */{
-                                      _0: Math.imul(n, -1)
-                                    }, tokens.tl);
-                        }
-                      } else {
-                        return List.cons(/* Num */{
-                                    _0: Math.imul(n$prime._0, 10) + n | 0
-                                  }, tokens.tl);
-                      }
-                    }
-                    throw {
-                          RE_EXN_ID: UnexpectedToken,
-                          _1: c,
-                          Error: new Error()
+  var param = List.fold_left((function (param, c) {
+          var tokens = param.tokens;
+          var exit = 0;
+          switch (c) {
+            case 32 :
+                return {
+                        tokens: tokens,
+                        neg: false
+                      };
+            case 40 :
+                return {
+                        tokens: List.cons(/* OpenPar */2, tokens),
+                        neg: false
+                      };
+            case 41 :
+                return {
+                        tokens: List.cons(/* ClosePar */3, tokens),
+                        neg: false
+                      };
+            case 43 :
+                return {
+                        tokens: List.cons(/* Plus */1, tokens),
+                        neg: false
+                      };
+            case 33 :
+            case 34 :
+            case 35 :
+            case 36 :
+            case 37 :
+            case 38 :
+            case 39 :
+            case 42 :
+            case 44 :
+                exit = 1;
+                break;
+            case 45 :
+                return {
+                        tokens: List.cons(/* Dash */0, tokens),
+                        neg: true
+                      };
+            default:
+              exit = 1;
+          }
+          if (exit === 1) {
+            if (c >= /* "0" */48 && c <= /* "9" */57) {
+              var n = c - 48 | 0;
+              var exit$1 = 0;
+              if (tokens) {
+                var n$prime = tokens.hd;
+                if (typeof n$prime !== "number") {
+                  return {
+                          tokens: List.cons(/* Num */{
+                                _0: Math.imul(n$prime._0, 10) + n | 0
+                              }, tokens.tl),
+                          neg: false
                         };
-                  }), /* [] */0, List.init(input.length, (function (param) {
-                        return Caml_string.get(input, param);
-                      }))));
+                }
+                if (n$prime !== 0) {
+                  exit$1 = 2;
+                } else {
+                  if (param.neg) {
+                    return {
+                            tokens: List.cons(/* Num */{
+                                  _0: Math.imul(n, -1)
+                                }, tokens.tl),
+                            neg: false
+                          };
+                  }
+                  exit$1 = 2;
+                }
+              } else {
+                exit$1 = 2;
+              }
+              if (exit$1 === 2) {
+                return {
+                        tokens: List.cons(/* Num */{
+                              _0: n
+                            }, tokens),
+                        neg: false
+                      };
+              }
+              
+            } else {
+              throw {
+                    RE_EXN_ID: UnexpectedToken,
+                    _1: c,
+                    Error: new Error()
+                  };
+            }
+          }
+          
+        }), {
+        tokens: /* [] */0,
+        neg: false
+      }, List.init(input.length, (function (param) {
+              return Caml_string.get(input, param);
+            })));
+  return List.rev(param.tokens);
 }
 
 exports.UnexpectedToken = UnexpectedToken;
